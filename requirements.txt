@@ -6,3 +6,4 @@ werkzeug
 stripe
 pyjwt
 flask-cors
+replicate
