@@ -1,0 +1,8 @@
+Flask
+gunicorn
+firebase-admin
+requests
+werkzeug
+stripe
+pyjwt
+flask-cors

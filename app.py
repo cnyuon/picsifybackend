@@ -10,7 +10,7 @@ import jwt
 
 
 # Firebase Admin SDK initialization
-cred_path = 'C:/Users/Chiok/Desktop/pixify-2e9d9-firebase-adminsdk-z81ue-07458b8b51.json'
+cred_path = os.getenv('FIREBASE_CREDENTIALS')
 cred = credentials.Certificate(cred_path)
 initialize_app(cred)
 db = firestore.client()
