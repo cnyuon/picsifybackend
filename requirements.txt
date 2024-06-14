@@ -1,0 +1,10 @@
+Flask
+gunicorn
+firebase-admin
+requests
+werkzeug.utils
+stripe
+jwt
+os
+flask_cors
+# Add other dependencies here
