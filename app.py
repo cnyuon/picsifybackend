@@ -7,10 +7,11 @@ from werkzeug.utils import secure_filename
 import requests
 import stripe 
 import jwt
+import json
 
 
 # Firebase Admin SDK initialization
-cred_path = 'C:/Users/Chiok/Desktop/pixify-2e9d9-firebase-adminsdk-z81ue-07458b8b51.json'
+cred_path = json.getenv('FIREBASE_CREDENTIALS')
 cred = credentials.Certificate(cred_path)
 initialize_app(cred)
 db = firestore.client()
