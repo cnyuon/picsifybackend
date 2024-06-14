@@ -7,26 +7,34 @@ from werkzeug.utils import secure_filename
 import requests
 import stripe 
 import jwt
+import base64
+import json
+
+# Decode Firebase credentials
+firebase_creds_base64 = os.getenv('FIREBASE_CREDENTIALS')
+firebase_creds_json = base64.b64decode(firebase_creds_base64).decode('utf-8')
+firebase_creds = json.loads(firebase_creds_json)
 
 
-# Firebase Admin SDK initialization
-cred_path = os.getenv('FIREBASE_CREDENTIALS')
-cred = credentials.Certificate(cred_path)
+# Initialize Firebase app
+cred = credentials.Certificate(firebase_creds)
 initialize_app(cred)
 db = firestore.client()
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
+
 # gets the stripe secret key
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+REPLICATE_API_TOKEN = os.getenv('REPLICATE_API_TOKEN')
 endpoint_secret = "whsec_c2858f9e9e9a9759e5d2fbf97726203457191ca4010e1e271fd8d2588733f99c"
 
 # Ensure the uploads directory exists
 uploads_dir = os.path.join('static', 'uploads')
 os.makedirs(uploads_dir, exist_ok=True)
 
-REPLICATE_API_TOKEN = os.getenv('REPLICATE_API_TOKEN')
+
 
 
 ########################################################################################################
