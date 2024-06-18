@@ -223,7 +223,10 @@ def save_processed_image(image_url):
 @app.route('/api/user-credits', methods=['GET'])
 def get_user_credits():
     clerk_user_id = request.headers.get('Clerk-User-Id')
+    print(f"Received request for user credits, Clerk-User-Id: {clerk_user_id}")
+    
     if not clerk_user_id:
+        print("Clerk-User-Id header missing")
         return jsonify({'error': 'Clerk-User-Id header missing'}), 400
 
     user_ref = db.collection('users').document(clerk_user_id)
@@ -231,11 +234,13 @@ def get_user_credits():
 
     if not user_doc.exists():
         # Create new user with 5 initial credits if not exists
+        print("User not found, creating new user with 5 credits")
         user_ref.set({'credits': 5})
         return jsonify({'credits': 5}), 200
 
     user_data = user_doc.to_dict()
     credits = user_data.get('credits', 0)
+    print(f"Returning credits for user {clerk_user_id}: {credits}")
     return jsonify({'credits': credits}), 200
 
 @app.route('/download/<filename>', methods=['GET'])
@@ -280,6 +285,7 @@ def clerk_webhook():
 
     if data['type'] == 'user.created':
         user_id = data['data']['id']
+        print(f"New user created with ID: {user_id}")
 
         # Check if the user document already exists
         user_ref = db.collection('users').document(user_id)
@@ -288,6 +294,12 @@ def clerk_webhook():
         # If the user document does not exist, create it with 5 initial credits
         if not user_doc.exists:
             user_ref.set({'credits': 5})
+        else:
+            try:
+                user_ref.set({'credits': 5})
+                print(f"User {user_id} initialized with 5 credits")
+            except Exception as e:
+                print(f"Error creating user document for {user_id}: {e}")
 
     return jsonify({'status': 'success'})
 
