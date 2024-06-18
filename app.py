@@ -61,8 +61,8 @@ def create_checkout_session():
             'quantity': 1,
         }],
         mode='payment',
-        success_url='http://localhost:3000/success',
-        cancel_url='http://localhost:3000/cancel',
+        success_url='https://picsify-theta.vercel.app/success',
+        cancel_url='https://picsify-theta.vercel.app/cancel',
         metadata={
             'user_id': user_id,
         }
