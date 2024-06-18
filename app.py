@@ -232,7 +232,7 @@ def get_user_credits():
     user_ref = db.collection('users').document(clerk_user_id)
     user_doc = user_ref.get()
 
-    if not user_doc.exists():
+    if not user_doc.exists:
         # Create new user with 5 initial credits if not exists
         print("User not found, creating new user with 5 credits")
         user_ref.set({'credits': 5})
@@ -243,9 +243,6 @@ def get_user_credits():
     print(f"Returning credits for user {clerk_user_id}: {credits}")
     return jsonify({'credits': credits}), 200
 
-@app.route('/download/<filename>', methods=['GET'])
-def download_file(filename):
-    return send_from_directory(uploads_dir, filename, as_attachment=True)
 
 ########################################################################################################
 
