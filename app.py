@@ -280,9 +280,13 @@ def clerk_webhook():
     if data['type'] == 'user.created':
         user_id = data['data']['id']
 
-        # Add the new user to Firestore with 5 initial credits
+        # Check if the user document already exists
         user_ref = db.collection('users').document(user_id)
-        user_ref.set({'credits': 5})
+        user_doc = user_ref.get()
+        
+        # If the user document does not exist, create it with 5 initial credits
+        if not user_doc.exists:
+            user_ref.set({'credits': 5})
 
     return jsonify({'status': 'success'})
 
