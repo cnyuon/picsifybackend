@@ -229,12 +229,13 @@ def get_user_credits():
     user_ref = db.collection('users').document(clerk_user_id)
     user_doc = user_ref.get()
 
-    if not user_doc.exists:
-        return jsonify({'error': 'User not found'}), 404
+    if not user_doc.exists():
+        # Create new user with 5 initial credits if not exists
+        user_ref.set({'credits': 5})
+        return jsonify({'credits': 5}), 200
 
     user_data = user_doc.to_dict()
     credits = user_data.get('credits', 0)
-
     return jsonify({'credits': credits}), 200
 
 @app.route('/download/<filename>', methods=['GET'])
@@ -283,7 +284,7 @@ def clerk_webhook():
         # Check if the user document already exists
         user_ref = db.collection('users').document(user_id)
         user_doc = user_ref.get()
-        
+
         # If the user document does not exist, create it with 5 initial credits
         if not user_doc.exists:
             user_ref.set({'credits': 5})
