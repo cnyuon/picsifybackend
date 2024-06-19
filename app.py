@@ -15,7 +15,6 @@ firebase_creds_base64 = os.getenv('FIREBASE_CREDENTIALS')
 firebase_creds_json = base64.b64decode(firebase_creds_base64).decode('utf-8')
 firebase_creds = json.loads(firebase_creds_json)
 
-
 # Initialize Firebase app
 cred = credentials.Certificate(firebase_creds)
 initialize_app(cred)
@@ -23,7 +22,6 @@ db = firestore.client()
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
-
 
 # gets the stripe secret key
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
@@ -33,12 +31,6 @@ endpoint_secret = "whsec_c2858f9e9e9a9759e5d2fbf97726203457191ca4010e1e271fd8d25
 # Ensure the uploads directory exists
 uploads_dir = os.path.join('static', 'uploads')
 os.makedirs(uploads_dir, exist_ok=True)
-
-
-
-
-########################################################################################################
-
 
 # integration for stripe (backend)
 @app.route('/create-checkout-session', methods=['POST'])
@@ -123,10 +115,6 @@ def handle_checkout_session(session):
         print(f"Credits updated for user {user_id}: {new_credits}")
     else:
         print(f"User document does not exist for user {user_id}")
-
-
-########################################################################################################
-
 
 # software (backend)
 
@@ -219,7 +207,6 @@ def save_processed_image(image_url):
         print("Error saving processed image:", str(e))
         return None
 
-
 @app.route('/api/user-credits', methods=['GET'])
 def get_user_credits():
     clerk_user_id = request.headers.get('Clerk-User-Id')
@@ -232,7 +219,7 @@ def get_user_credits():
     user_ref = db.collection('users').document(clerk_user_id)
     user_doc = user_ref.get()
 
-    if not user_doc.exists:
+    if not user_doc.exists():
         # Create new user with 5 initial credits if not exists
         print("User not found, creating new user with 5 credits")
         user_ref.set({'credits': 5})
@@ -243,11 +230,7 @@ def get_user_credits():
     print(f"Returning credits for user {clerk_user_id}: {credits}")
     return jsonify({'credits': credits}), 200
 
-
-########################################################################################################
-
 # clerk
-
 
 CLERK_PEM_PUBLIC_KEY = """
 -----BEGIN PUBLIC KEY-----
@@ -270,8 +253,6 @@ def verify_clerk_jwt(token):
     except jwt.InvalidTokenError:
         return None
 
-
-
 @app.route('/clerk/webhook', methods=['POST'])
 def clerk_webhook():
     token = request.headers.get('Authorization')
@@ -290,8 +271,6 @@ def clerk_webhook():
 
         # If the user document does not exist, create it with 5 initial credits
         if not user_doc.exists:
-            user_ref.set({'credits': 5})
-        else:
             try:
                 user_ref.set({'credits': 5})
                 print(f"User {user_id} initialized with 5 credits")
@@ -299,7 +278,6 @@ def clerk_webhook():
                 print(f"Error creating user document for {user_id}: {e}")
 
     return jsonify({'status': 'success'})
-
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
