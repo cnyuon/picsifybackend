@@ -28,7 +28,9 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 # gets the stripe secret key
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 REPLICATE_API_TOKEN = os.getenv('REPLICATE_API_TOKEN')
-endpoint_secret = "whsec_c2858f9e9e9a9759e5d2fbf97726203457191ca4010e1e271fd8d2588733f99c"
+##endpoint_secret = "whsec_c2858f9e9e9a9759e5d2fbf97726203457191ca4010e1e271fd8d2588733f99c"
+
+endpoint_secret = os.getenv("STRIPE_ENDPOINT_SECRET")
 
 # Ensure the uploads directory exists
 uploads_dir = os.path.join('static', 'uploads')
@@ -75,9 +77,13 @@ def stripe_webhook():
     payload = request.get_data(as_text=True)
     sig_header = request.headers.get('Stripe-Signature')
 
-    print("Webhook received")
+    print("Webhook received with payload:", payload)
+    print("Signature header:", sig_header)
+
+
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
+        print("Webhook verified:", event)
     except ValueError as e:
         # Invalid payload
         print(f"Invalid payload: {e}")
@@ -88,6 +94,7 @@ def stripe_webhook():
         return jsonify(success=False), 400
 
     # Handle the event
+    print(f"Webhook event type: {event['type']}")
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
         handle_checkout_session(session)
