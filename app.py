@@ -64,7 +64,7 @@ def create_checkout_session():
 
 
     session = stripe.checkout.Session.create(
-        payment_method_types=['card'],
+        payment_method_types=['card', 'apple_pay'],
         line_items=[{
             'price_data': {
                 'currency': 'usd',
