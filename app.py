@@ -49,6 +49,10 @@ def create_checkout_session():
     name = data.get('name')
     amount = data.get('amount')
     user_id = data.get('metadata', {}).get('user_id')
+    
+
+    print(f"Creating checkout session for user: {user_id}, product: {name}, amount: {amount}")
+
 
     session = stripe.checkout.Session.create(
         payment_method_types=['card'],
