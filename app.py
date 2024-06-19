@@ -50,6 +50,15 @@ def create_checkout_session():
     amount = data.get('amount')
     user_id = data.get('metadata', {}).get('user_id')
 
+    # Define the credit amount for each product type
+    product_credits = {
+        'Standard': 200,
+        'Pro': 500
+    }
+
+    # Get the credit amount for the selected product
+    credits = product_credits.get(name, 0)
+
 
     print(f"Creating checkout session for user: {user_id}, product: {name}, amount: {amount}")
 
