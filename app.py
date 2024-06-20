@@ -160,6 +160,15 @@ def create_checkout_session():
     amount = data.get('amount')
     user_id = data.get('metadata', {}).get('user_id')
 
+    # Define the credit amount for each product type
+    product_credits = {
+        'Standard': 200,
+        'Pro': 500
+    }
+
+    # Get the credit amount for the selected product
+    credits = product_credits.get(name, 0)
+
     try:
         session = stripe.checkout.Session.create(
             payment_method_types=['card'],
@@ -168,7 +177,7 @@ def create_checkout_session():
                     'currency': 'usd',
                     'product_data': {
                         'name': name,
-                        'description':
+                        'description': f'{credits} credits'
                     },
                     'unit_amount': amount,
                 },
