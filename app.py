@@ -10,6 +10,7 @@ import jwt
 import base64
 import json
 import time
+import uuid
 
 # Decode Firebase credentials
 firebase_creds_base64 = os.getenv('FIREBASE_CREDENTIALS')
@@ -59,13 +60,9 @@ def upload():
         print("Insufficient credits")
         return jsonify({'error': 'Insufficient credits'}), 403
 
-    # Create a user-specific directory if it doesn't exist
-    user_uploads_dir = os.path.join(uploads_dir, clerk_user_id)
-    os.makedirs(user_uploads_dir, exist_ok=True)
-
     # Save the uploaded image with a unique filename
-    filename = secure_filename(f"{clerk_user_id}_{int(time.time())}_{image_file.filename}")
-    filepath = os.path.join(user_uploads_dir, filename)
+    unique_filename = secure_filename(f"{uuid.uuid4()}_{image_file.filename}")
+    filepath = os.path.join(uploads_dir, unique_filename)
     image_file.save(filepath)
     print(f"File saved to {filepath}")
 
@@ -79,8 +76,8 @@ def upload():
     user_ref.update({"credits": new_credits})
     print(f"Credits updated for user {clerk_user_id}: {new_credits}")
 
-    original_url = url_for('download_file', filename=f'{clerk_user_id}/{filename}', _external=True)
-    processed_url = url_for('download_file', filename=f'{clerk_user_id}/{os.path.basename(processed_filepath)}', _external=True)
+    original_url = url_for('download_file', filename=unique_filename, _external=True)
+    processed_url = url_for('download_file', filename=os.path.basename(processed_filepath), _external=True)
     print(f"Original URL: {original_url}")
     print(f"Processed URL: {processed_url}")
 
@@ -113,8 +110,7 @@ def save_processed_image(image_url, original_filepath):
     try:
         response = requests.get(image_url)
         if response.status_code == 200:
-            user_dir = os.path.dirname(original_filepath)
-            processed_image_path = os.path.join(user_dir, 'processed_' + os.path.basename(original_filepath))
+            processed_image_path = os.path.join(uploads_dir, 'processed_' + os.path.basename(original_filepath))
             with open(processed_image_path, 'wb') as f:
                 f.write(response.content)
             return processed_image_path
@@ -148,67 +144,13 @@ def get_user_credits():
     print(f"Returning credits for user {clerk_user_id}: {credits}")
     return jsonify({'credits': credits}), 200
 
-@app.route('/download/<path:filename>', methods=['GET'])
+@app.route('/download/<filename>', methods=['GET'])
 def download_file(filename):
     print(f"Download requested for: {filename}")
     try:
         return send_from_directory(uploads_dir, filename, as_attachment=True)
     except FileNotFoundError:
         return jsonify({'error': 'File not found'}), 404
-
-
-########################################################################################################
-
-# clerk
-
-CLERK_PEM_PUBLIC_KEY = """
------BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwr6Uwp+8ZXyKXYvp45y5
-oFZbn5NbHDszz/pFsjcyS0bOLzadQpme7p6kvzZwaNwnuaimiVa2dlw353jpMAAU
-+8dt1M0xE5KNxk0e707F+RSVeBF9F9AsCh/zuaUjfzM6ij7UnVoq0Wstf4xzZEIY
-XwmgEKFm+77SL4mKUWBUNtmHNNh0Eyq7wBh3rm77QORvJ0MvOQ4viTjX0twzbiiM
-f5O6LkysWOUbdp06WxZNIabfkd2hk+Dgco5z1PftenDmyDdn2fFYvxfTUOMPAhPK
-pcHiR6stboJpKq1/I0VfIG7+6LMvN9q8ACOcQ4zdeOmyxcD4Or6HIjtRIubceJIH
-YQIDAQAB
------END PUBLIC KEY-----
-"""
-
-def verify_clerk_jwt(token):
-    try:
-        payload = jwt.decode(token, CLERK_PEM_PUBLIC_KEY, algorithms=['RS256'], audience="your_audience")
-        return payload
-    except jwt.ExpiredSignatureError:
-        return None
-    except jwt.InvalidTokenError:
-        return None
-
-@app.route('/clerk/webhook', methods=['POST'])
-def clerk_webhook():
-    token = request.headers.get('Authorization')
-    if not token or not verify_clerk_jwt(token):
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    data = request.get_json()
-
-    if data['type'] == 'user.created':
-        user_id = data['data']['id']
-        print(f"New user created with ID: {user_id}")
-
-        # Check if the user document already exists
-        user_ref = db.collection('users').document(user_id)
-        user_doc = user_ref.get()
-
-        # If the user document does not exist, create it with 5 initial credits
-        if not user_doc.exists:
-            user_ref.set({'credits': 5})
-        else:
-            try:
-                user_ref.set({'credits': 5})
-                print(f"User {user_id} initialized with 5 credits")
-            except Exception as e:
-                print(f"Error creating user document for {user_id}: {e}")
-
-    return jsonify({'status': 'success'})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
