@@ -168,7 +168,7 @@ def create_checkout_session():
                     'currency': 'usd',
                     'product_data': {
                         'name': name,
-                        'description': f'{amount / 100} credits'
+                        'description': f'{amount} credits'
                     },
                     'unit_amount': amount,
                 },
