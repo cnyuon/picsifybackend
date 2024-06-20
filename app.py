@@ -171,18 +171,24 @@ def upload():
         print("User not found")
         return jsonify({'error': 'User not found'}), 404
 
-    user_data = user_doc.to_dict()
-    if user_data.get('credits', 0) <= 0:
-        print("Insufficient credits")
-        return jsonify({'error': 'Insufficient credits'}), 403
-
+    # Check if an image file is provided
     image_file = request.files.get('image')
     if not image_file:
         print("No image provided")
         return jsonify({'error': 'No image provided'}), 400
 
-    filename = secure_filename(image_file.filename)
-    filepath = os.path.join(uploads_dir, filename)
+    user_data = user_doc.to_dict()
+    if user_data.get('credits', 0) <= 0:
+        print("Insufficient credits")
+        return jsonify({'error': 'Insufficient credits'}), 403
+
+    # Create a user-specific directory if it doesn't exist
+    user_uploads_dir = os.path.join(uploads_dir, clerk_user_id)
+    os.makedirs(user_uploads_dir, exist_ok=True)
+
+    # Save the uploaded image with a unique filename
+    filename = secure_filename(f"{clerk_user_id}_{int(time.time())}_{image_file.filename}")
+    filepath = os.path.join(user_uploads_dir, filename)
     image_file.save(filepath)
     print(f"File saved to {filepath}")
 
@@ -191,13 +197,13 @@ def upload():
         print("Image processing failed")
         return jsonify({'error': 'Image processing failed'}), 500
 
-    # Deduct credits
+    # Deduct credits after successful processing
     new_credits = user_data['credits'] - 1
     user_ref.update({"credits": new_credits})
     print(f"Credits updated for user {clerk_user_id}: {new_credits}")
 
-    original_url = url_for('static', filename='uploads/' + filename, _external=True)
-    processed_url = url_for('static', filename='uploads/' + os.path.basename(processed_filepath), _external=True)
+    original_url = url_for('static', filename=f'uploads/{clerk_user_id}/{filename}', _external=True)
+    processed_url = url_for('static', filename=f'uploads/{clerk_user_id}/{os.path.basename(processed_filepath)}', _external=True)
     print(f"Original URL: {original_url}")
     print(f"Processed URL: {processed_url}")
 
@@ -215,9 +221,9 @@ def process_image(filepath):
             )
             print(f"Replicate output: {output}")  # Debug output to show replicate output
             if isinstance(output, str) and output.startswith("http"):
-                processed_image_path = save_processed_image(output)
+                processed_image_path = save_processed_image(output, filepath)
             elif isinstance(output, list) and len(output) > 0 and output[0].startswith("http"):
-                processed_image_path = save_processed_image(output[0])
+                processed_image_path = save_processed_image(output[0], filepath)
             else:
                 print("Invalid image_data received:", output)
                 return None
@@ -226,11 +232,12 @@ def process_image(filepath):
         print("Error processing image:", str(e))
         return None
 
-def save_processed_image(image_url):
+def save_processed_image(image_url, original_filepath):
     try:
         response = requests.get(image_url)
         if response.status_code == 200:
-            processed_image_path = os.path.join(uploads_dir, 'processed_image.jpg')
+            user_dir = os.path.dirname(original_filepath)
+            processed_image_path = os.path.join(user_dir, 'processed_' + os.path.basename(original_filepath))
             with open(processed_image_path, 'wb') as f:
                 f.write(response.content)
             return processed_image_path
