@@ -150,6 +150,7 @@ def get_user_credits():
 
 @app.route('/download/<path:filename>', methods=['GET'])
 def download_file(filename):
+    print(f"Download requested for: {filename}")
     try:
         return send_from_directory(uploads_dir, filename, as_attachment=True)
     except FileNotFoundError:
