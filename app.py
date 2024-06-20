@@ -151,11 +151,16 @@ def get_user_credits():
 @app.route('/download/<path:filename>', methods=['GET'])
 def download_file(filename):
     try:
+        if '/' not in filename:
+            raise ValueError("Invalid filename format")
         user_id, file_name = filename.split('/', 1)
         user_dir = os.path.join(uploads_dir, user_id)
         return send_from_directory(user_dir, file_name, as_attachment=True)
+    except ValueError as ve:
+        print(f"ValueError: {ve}")
+        return jsonify({'error': str(ve)}), 400
     except FileNotFoundError:
-        return jsonify({'error': 'File not found'}), 404
+        return jsonify({'error': 'File not found'}), 40404
 
 
 ########################################################################################################
