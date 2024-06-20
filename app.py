@@ -148,14 +148,13 @@ def get_user_credits():
     print(f"Returning credits for user {clerk_user_id}: {credits}")
     return jsonify({'credits': credits}), 200
 
-@app.route('/download/<user_id>/<filename>', methods=['GET'])
-def download_file(user_id, filename):
-    print(f"Download requested for: user_id={user_id}, filename={filename}")
+@app.route('/download/<path:filename>', methods=['GET'])
+def download_file(filename):
+    print(f"Download requested for: {filename}")
     try:
-        return send_from_directory(os.path.join(uploads_dir, user_id), filename, as_attachment=True)
+        return send_from_directory(uploads_dir, filename, as_attachment=True)
     except FileNotFoundError:
         return jsonify({'error': 'File not found'}), 404
-
 
 
 ########################################################################################################
