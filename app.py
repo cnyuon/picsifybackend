@@ -11,7 +11,7 @@ import base64
 import json
 import time
 import uuid
-from PIL import Image
+
 
 # set max file size to 10mb
 MAX_FILE_SIZE = 10 * 1024 * 1024 # 10 MB
@@ -81,17 +81,6 @@ def upload():
     if not processed_filepath:
         print("Image processing failed")
         return jsonify({'error': 'Image processing failed'}), 500
-    
-    # Compress the image
-    compressed_filepath = compress_image(filepath)
-    if not compressed_filepath:
-        print("Image compression failed")
-        return jsonify({'error': 'Image compression failed'}), 500
-
-    processed_filepath = process_image(compressed_filepath)
-    if not processed_filepath:
-        print("Image processing failed")
-        return jsonify({'error': 'Image processing failed'}), 500
 
     # Deduct credits after successful processing
     new_credits = user_data['credits'] - 1
@@ -108,18 +97,6 @@ def upload():
         'processed_image_url': processed_url
     }), 200
 
-
-def compress_image(filepath, quality=85):
-    try:
-        with Image.open(filepath) as img:
-            img = img.convert("RGB")
-            compressed_filepath = f"{os.path.splitext(filepath)[0]}_compressed.jpg"
-            img.save(compressed_filepath, "JPEG", quality=quality)
-        return compressed_filepath
-    except Exception as e:
-        print(f"Error compressing image: {e}")
-        return None
-    
 def process_image(filepath):
     try:
         with open(filepath, "rb") as file:
@@ -185,48 +162,6 @@ def download_file(filename):
         return send_from_directory(uploads_dir, filename, as_attachment=True)
     except FileNotFoundError:
         return jsonify({'error': 'File not found'}), 404
-
-
-@app.route('/create-checkout-session', methods=['POST'])
-def create_checkout_session():
-    data = request.get_json()
-    name = data.get('name')
-    amount = data.get('amount')
-    user_id = data.get('metadata', {}).get('user_id')
-
-    # Define the credit amount for each product type
-    product_credits = {
-        'Standard': 200,
-        'Pro': 500
-    }
-
-    # Get the credit amount for the selected product
-    credits = product_credits.get(name, 0)
-
-    try:
-        session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[{
-                'price_data': {
-                    'currency': 'usd',
-                    'product_data': {
-                        'name': name,
-                        'description': f'{credits} credits'
-                    },
-                    'unit_amount': amount,
-                },
-                'quantity': 1,
-            }],
-            mode='payment',
-            success_url='https://picsify.io/success',
-            cancel_url='https://picsify.io/cancel',
-            metadata={
-                'user_id': user_id,
-            }
-        )
-        return jsonify(id=session.id)
-    except Exception as e:
-        return jsonify(error=str(e)), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
