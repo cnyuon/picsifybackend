@@ -11,6 +11,10 @@ import base64
 import json
 import time
 import uuid
+from PIL import Image
+
+# set max file size to 10mb
+MAX_FILE_SIZE = 10 * 1024 * 1024 # 10 MB
 
 # Decode Firebase credentials
 firebase_creds_base64 = os.getenv('FIREBASE_CREDENTIALS')
@@ -22,8 +26,10 @@ cred = credentials.Certificate(firebase_creds)
 initialize_app(cred)
 db = firestore.client()
 
+
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
+app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE  # Set max upload size
 
 # gets the stripe secret key
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
@@ -36,6 +42,11 @@ os.makedirs(uploads_dir, exist_ok=True)
 
 @app.route('/upload', methods=['POST'])
 def upload():
+
+
+
+
+
     print("Upload route hit")  # Confirm route hit
     clerk_user_id = request.headers.get('Clerk-User-Id')
     if not clerk_user_id:
@@ -70,6 +81,17 @@ def upload():
     if not processed_filepath:
         print("Image processing failed")
         return jsonify({'error': 'Image processing failed'}), 500
+    
+    # Compress the image
+    compressed_filepath = compress_image(filepath)
+    if not compressed_filepath:
+        print("Image compression failed")
+        return jsonify({'error': 'Image compression failed'}), 500
+
+    processed_filepath = process_image(compressed_filepath)
+    if not processed_filepath:
+        print("Image processing failed")
+        return jsonify({'error': 'Image processing failed'}), 500
 
     # Deduct credits after successful processing
     new_credits = user_data['credits'] - 1
@@ -86,6 +108,18 @@ def upload():
         'processed_image_url': processed_url
     }), 200
 
+
+def compress_image(filepath, quality=85):
+    try:
+        with Image.open(filepath) as img:
+            img = img.convert("RGB")
+            compressed_filepath = f"{os.path.splitext(filepath)[0]}_compressed.jpg"
+            img.save(compressed_filepath, "JPEG", quality=quality)
+        return compressed_filepath
+    except Exception as e:
+        print(f"Error compressing image: {e}")
+        return None
+    
 def process_image(filepath):
     try:
         with open(filepath, "rb") as file:
