@@ -186,6 +186,48 @@ def download_file(filename):
     except FileNotFoundError:
         return jsonify({'error': 'File not found'}), 404
 
+
+@app.route('/create-checkout-session', methods=['POST'])
+def create_checkout_session():
+    data = request.get_json()
+    name = data.get('name')
+    amount = data.get('amount')
+    user_id = data.get('metadata', {}).get('user_id')
+
+    # Define the credit amount for each product type
+    product_credits = {
+        'Standard': 200,
+        'Pro': 500
+    }
+
+    # Get the credit amount for the selected product
+    credits = product_credits.get(name, 0)
+
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': name,
+                        'description': f'{credits} credits'
+                    },
+                    'unit_amount': amount,
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url='https://picsify.io/success',
+            cancel_url='https://picsify.io/cancel',
+            metadata={
+                'user_id': user_id,
+            }
+        )
+        return jsonify(id=session.id)
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(debug=True, host='0.0.0.0', port=port)
